@@ -83,7 +83,6 @@ const [showResetModal, setShowResetModal] = useState(false);
         // New user - redirect to profile completion
         router.push('/complete-profile');
       } else {
-        // Existing user - go to dashboard
         router.push('/dashboard');
       }
     } catch (error) {
