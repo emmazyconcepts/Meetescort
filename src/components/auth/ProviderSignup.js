@@ -5,6 +5,8 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import LocationSearch from '@/components/ui/LocationSearch';
+
 
 export default function ProviderSignup() {
   const [formData, setFormData] = useState({
@@ -39,9 +41,18 @@ export default function ProviderSignup() {
       sunday: 'all-day'
     },
     
-    // Pricing
-    incallPrice: '',
-    outcallPrice: '',
+    incallHours: '',
+  incallPrice: '',
+  incallNotes: '',
+  
+  outcallHours: '',
+  outcallPrice: '',
+  outcallNotes: '',
+  
+  travelFee: '',
+  deposit: '',
+  startTime: '09:00',
+  endTime: '23:00',
     
     // Contact
     website: '',
@@ -279,24 +290,19 @@ export default function ProviderSignup() {
   );
 
   // Step 2: Profile Details
-  const renderStep2 = () => (
+// Step 2: Profile Details with Location Search
+const renderStep2 = () => (
     <div className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-pink-200 mb-2">Based In *</label>
-        <select
-          name="location"
+        <LocationSearch
           value={formData.location}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
-          required
-        >
-          <option value="">Select your location</option>
-          {locations.map(loc => (
-            <option key={loc} value={loc}>{loc}</option>
-          ))}
-        </select>
+          onChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
+          className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+        />
+        <p className="mt-1 text-xs text-pink-300/70">Start typing to search for your city</p>
       </div>
-
+  
       <div>
         <label className="block text-sm font-medium text-pink-200 mb-2">Caters To *</label>
         <select
@@ -310,7 +316,7 @@ export default function ProviderSignup() {
           <option value="both">Both</option>
         </select>
       </div>
-
+  
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-pink-200 mb-2">Gender *</label>
@@ -346,7 +352,8 @@ export default function ProviderSignup() {
           </select>
         </div>
       </div>
-
+  
+      {/* Rest of your existing fields remain the same */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-pink-200 mb-2">Body Type</label>
@@ -375,7 +382,7 @@ export default function ProviderSignup() {
           />
         </div>
       </div>
-
+  
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-pink-200 mb-2">Ethnicity</label>
@@ -403,63 +410,210 @@ export default function ProviderSignup() {
     </div>
   );
 
-  // Step 3: Pricing & Availability
   const renderStep3 = () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-pink-200 mb-2">Incall Price (1H) *</label>
-          <input
-            type="text"
-            name="incallPrice"
-            value={formData.incallPrice}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
-            placeholder="US$275"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-pink-200 mb-2">Outcall Price (1H) *</label>
-          <input
-            type="text"
-            name="outcallPrice"
-            value={formData.outcallPrice}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
-            placeholder="US$320"
-            required
-          />
+      {/* Incall Services - Your Location */}
+      <div className="bg-black/20 rounded-xl p-4 border border-pink-500/20">
+        <h4 className="text-lg font-semibold text-pink-300 mb-4 flex items-center">
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          Incall Services (Your Location)
+        </h4>
+        
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-pink-200 mb-2">Hours/Duration</label>
+              <input
+                type="text"
+                name="incallHours"
+                value={formData.incallHours || ''}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                placeholder="e.g., 1 hour, 2 hours, overnight"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-pink-200 mb-2">Price (USD)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300">$</span>
+                <input
+                  type="number"
+                  name="incallPrice"
+                  value={formData.incallPrice || ''}
+                  onChange={handleChange}
+                  className="w-full pl-8 pr-3 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                  placeholder="275"
+                  min="0"
+                  step="10"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-pink-200 mb-2">Additional Info</label>
+              <input
+                type="text"
+                name="incallNotes"
+                value={formData.incallNotes || ''}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                placeholder="e.g., Minimum 2 hours"
+              />
+            </div>
+          </div>
+          
+          <div className="text-xs text-pink-300/70">
+            💡 Example: "1 hour" for $300, "2 hours" for $500, "Overnight" for $1200
+          </div>
         </div>
       </div>
-
-      <div>
-        <label className="block text-sm font-medium text-pink-200 mb-2">Availability</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-          {Object.entries(formData.availability).map(([day, value]) => (
-            <div key={day} className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-pink-500/20">
-              <span className="text-pink-200 capitalize font-medium">{day}</span>
-              <select
-                value={value}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  availability: { ...prev.availability, [day]: e.target.value }
-                }))}
-                className="bg-black/30 text-pink-200 border border-pink-500/30 rounded px-2 py-1 focus:outline-none focus:border-pink-400"
-              >
-                <option value="all-day">All day</option>
-                <option value="morning">Morning</option>
-                <option value="afternoon">Afternoon</option>
-                <option value="evening">Evening</option>
-                <option value="not-available">Not available</option>
-              </select>
+  
+      {/* Outcall Services - Client's Location */}
+      <div className="bg-black/20 rounded-xl p-4 border border-pink-500/20">
+        <h4 className="text-lg font-semibold text-pink-300 mb-4 flex items-center">
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Outcall Services (Client's Location)
+        </h4>
+        
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-pink-200 mb-2">Hours/Duration</label>
+              <input
+                type="text"
+                name="outcallHours"
+                value={formData.outcallHours || ''}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                placeholder="e.g., 1 hour, 2 hours, overnight"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-pink-200 mb-2">Price (USD)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300">$</span>
+                <input
+                  type="number"
+                  name="outcallPrice"
+                  value={formData.outcallPrice || ''}
+                  onChange={handleChange}
+                  className="w-full pl-8 pr-3 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                  placeholder="320"
+                  min="0"
+                  step="10"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-pink-200 mb-2">Additional Info</label>
+              <input
+                type="text"
+                name="outcallNotes"
+                value={formData.outcallNotes || ''}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                placeholder="e.g., Plus travel fee"
+              />
+            </div>
+          </div>
+          
+          <div className="text-xs text-pink-300/70">
+            💡 Outcall prices are typically higher due to travel time and expenses
+          </div>
+        </div>
+      </div>
+  
+      {/* Additional Pricing Options */}
+      <div className="bg-black/20 rounded-xl p-4 border border-pink-500/20">
+        <h4 className="text-lg font-semibold text-pink-300 mb-4">Additional Pricing</h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-pink-200 mb-2">Travel Fee (Outside City)</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300">$</span>
+              <input
+                type="number"
+                name="travelFee"
+                value={formData.travelFee || ''}
+                onChange={handleChange}
+                className="w-full pl-8 pr-3 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                placeholder="50"
+                min="0"
+              />
+            </div>
+            <p className="text-xs text-pink-300/70 mt-1">Fee for locations outside your city</p>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-pink-200 mb-2">Deposit Required</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300">$</span>
+              <input
+                type="number"
+                name="deposit"
+                value={formData.deposit || ''}
+                onChange={handleChange}
+                className="w-full pl-8 pr-3 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                placeholder="100"
+                min="0"
+              />
+            </div>
+            <p className="text-xs text-pink-300/70 mt-1">Advance deposit to secure booking</p>
+          </div>
+        </div>
+      </div>
+  
+      {/* Availability */}
+      <div className="bg-black/20 rounded-xl p-4 border border-pink-500/20">
+        <h4 className="text-lg font-semibold text-pink-300 mb-4">Weekly Availability</h4>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {Object.entries(formData.availability).map(([day, schedule]) => (
+            <div key={day} className="flex items-center justify-between p-3 bg-black/30 rounded-lg border border-pink-500/20">
+              <span className="text-pink-200 capitalize">{day}</span>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={schedule.available}
+                  onChange={(e) => updateAvailability(day, 'available', e.target.checked)}
+                  className="w-4 h-4 text-pink-500 bg-black/20 border-pink-500/30 rounded focus:ring-pink-400"
+                />
+                <span className="ml-2 text-pink-300 text-sm">Available</span>
+              </label>
             </div>
           ))}
+        </div>
+        
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-pink-200 mb-2">Typical Start Time</label>
+            <input
+              type="time"
+              name="startTime"
+              value={formData.startTime || '09:00'}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white focus:outline-none focus:border-pink-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-pink-200 mb-2">Typical End Time</label>
+            <input
+              type="time"
+              name="endTime"
+              value={formData.endTime || '23:00'}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white focus:outline-none focus:border-pink-400"
+            />
+          </div>
         </div>
       </div>
     </div>
   );
-
   // Step 4: Final Details
   const renderStep4 = () => (
     <div className="space-y-6">
