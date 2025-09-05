@@ -32,14 +32,14 @@ export default function ProviderSignup() {
     
     // Availability
     availability: {
-      monday: 'all-day',
-      tuesday: 'all-day',
-      wednesday: 'all-day',
-      thursday: 'all-day',
-      friday: 'all-day',
-      saturday: 'all-day',
-      sunday: 'all-day'
-    },
+        monday: { available: true },
+        tuesday: { available: true },
+        wednesday: { available: true },
+        thursday: { available: true },
+        friday: { available: true },
+        saturday: { available: true },
+        sunday: { available: true }
+      },
     
     incallHours: '',
   incallPrice: '',
@@ -135,14 +135,20 @@ export default function ProviderSignup() {
           return 'Please select your age range';
         }
         break;
-      case 3:
-        if (!formData.incallPrice?.trim()) {
-          return 'Incall price is required';
-        }
-        if (!formData.outcallPrice?.trim()) {
-          return 'Outcall price is required';
-        }
-        break;
+        case 3:
+      if (!formData.incallHours?.trim()) {
+        return 'Please specify incall hours/duration';
+      }
+      if (!formData.incallPrice || parseFloat(formData.incallPrice) <= 0) {
+        return 'Please enter a valid incall price';
+      }
+      if (!formData.outcallHours?.trim()) {
+        return 'Please specify outcall hours/duration';
+      }
+      if (!formData.outcallPrice || parseFloat(formData.outcallPrice) <= 0) {
+        return 'Please enter a valid outcall price';
+      }
+      break;
       case 4:
         if (!formData.agreeToTerms) {
           return 'You must agree to the platform policies';
@@ -152,6 +158,19 @@ export default function ProviderSignup() {
         break;
     }
     return null;
+  };
+
+  const updateAvailability = (day, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      availability: {
+        ...prev.availability,
+        [day]: {
+          ...prev.availability[day],
+          [field]: value
+        }
+      }
+    }));
   };
 
   const handleSubmit = async (e) => {
