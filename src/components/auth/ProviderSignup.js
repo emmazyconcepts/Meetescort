@@ -6,6 +6,8 @@ import { auth, db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import LocationSearch from '@/components/ui/LocationSearch';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 
 export default function ProviderSignup() {
@@ -56,8 +58,13 @@ export default function ProviderSignup() {
     
     // Contact
     website: '',
-    
+    phone: '',
+    preferredContact: 'whatsapp',
+    website: '',
+    instagram: '',
+    twitter: '',
     agreeToTerms: false
+    
   });
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -150,10 +157,16 @@ export default function ProviderSignup() {
       }
       break;
       case 4:
-        if (!formData.agreeToTerms) {
-          return 'You must agree to the platform policies';
-        }
-        break;
+      if (!formData.phone) {
+        return 'Phone number is required';
+      }
+      if (formData.phone && formData.phone.length < 8) {
+        return 'Please enter a valid phone number';
+      }
+      if (!formData.agreeToTerms) {
+        return 'You must agree to the platform policies';
+      }
+      break;
       default:
         break;
     }
@@ -636,18 +649,110 @@ const renderStep2 = () => (
   // Step 4: Final Details
   const renderStep4 = () => (
     <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-pink-200 mb-2">Website/Contact</label>
-        <input
-          type="url"
-          name="website"
-          value={formData.website}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
-          placeholder="https://yourwebsite.com"
-        />
+      {/* Contact Information */}
+      <div className="bg-black/20 rounded-xl p-4 border border-pink-500/20">
+        <h4 className="text-lg font-semibold text-pink-300 mb-4 flex items-center">
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+          Contact Information
+        </h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-pink-200 mb-2">Phone Number *</label>
+            <div className="react-phone-input-custom">
+              <PhoneInput
+                international
+                defaultCountry="US"
+                value={formData.phone}
+                onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
+                className="w-full"
+                inputClassName="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                countrySelectProps={{
+                  className: "bg-black/20 text-white border-pink-500/30"
+                }}
+              />
+            </div>
+            <p className="mt-1 text-xs text-pink-300/70">Your phone number will be verified for security</p>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-pink-200 mb-2">Preferred Contact Method</label>
+            <select
+              name="preferredContact"
+              value={formData.preferredContact}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+            >
+              <option value="whatsapp">WhatsApp</option>
+              <option value="signal">Signal</option>
+              <option value="telegram">Telegram</option>
+              <option value="phone">Phone Call</option>
+              <option value="sms">SMS/Text</option>
+              <option value="email">Email Only</option>
+            </select>
+          </div>
+        </div>
       </div>
-
+  
+      {/* Online Presence */}
+      <div className="bg-black/20 rounded-xl p-4 border border-pink-500/20">
+        <h4 className="text-lg font-semibold text-pink-300 mb-4 flex items-center">
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+          </svg>
+          Online Presence (Optional)
+        </h4>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-pink-200 mb-2">Website</label>
+            <input
+              type="url"
+              name="website"
+              value={formData.website}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+              placeholder="https://yourwebsite.com"
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-pink-200 mb-2">Instagram</label>
+              <div className="flex items-center">
+                <span className="px-3 py-3 bg-black/30 border border-pink-500/30 rounded-l-xl text-pink-300 border-r-0">@</span>
+                <input
+                  type="text"
+                  name="instagram"
+                  value={formData.instagram || ''}
+                  onChange={handleChange}
+                  className="flex-1 px-4 py-3 bg-black/20 border border-pink-500/30 rounded-r-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                  placeholder="username"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-pink-200 mb-2">Twitter</label>
+              <div className="flex items-center">
+                <span className="px-3 py-3 bg-black/30 border border-pink-500/30 rounded-l-xl text-pink-300 border-r-0">@</span>
+                <input
+                  type="text"
+                  name="twitter"
+                  value={formData.twitter || ''}
+                  onChange={handleChange}
+                  className="flex-1 px-4 py-3 bg-black/20 border border-pink-500/30 rounded-r-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+                  placeholder="username"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      {/* Terms and Conditions */}
       <div className="flex items-start space-x-3 p-4 bg-black/20 rounded-xl border border-pink-500/20">
         <input
           type="checkbox"
@@ -659,7 +764,9 @@ const renderStep2 = () => (
           required
         />
         <label htmlFor="agreeToTerms" className="text-sm text-pink-200 leading-relaxed">
-          I agree to the platform policies and confirm that I am over the age of 18 and the age of majority in my jurisdiction. I understand that my profile will be reviewed and verified before being published.
+          I agree to the platform policies and confirm that I am over the age of 18 and the age of majority in my jurisdiction. 
+          I understand that my profile will be reviewed and verified before being published. I consent to receive verification 
+          messages via SMS or phone call.
         </label>
       </div>
     </div>
