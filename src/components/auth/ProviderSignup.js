@@ -604,22 +604,26 @@ const renderStep2 = () => (
       <div className="bg-black/20 rounded-xl p-4 border border-pink-500/20">
         <h4 className="text-lg font-semibold text-pink-300 mb-4">Weekly Availability</h4>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {Object.entries(formData.availability).map(([day, schedule]) => (
-            <div key={day} className="flex items-center justify-between p-3 bg-black/30 rounded-lg border border-pink-500/20">
-              <span className="text-pink-200 capitalize">{day}</span>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={schedule.available}
-                  onChange={(e) => updateAvailability(day, 'available', e.target.checked)}
-                  className="w-4 h-4 text-pink-500 bg-black/20 border-pink-500/30 rounded focus:ring-pink-400"
-                />
-                <span className="ml-2 text-pink-300 text-sm">Available</span>
-              </label>
-            </div>
-          ))}
-        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
+  {Object.entries(formData.availability).map(([day, schedule]) => (
+    <div key={day} className="flex flex-col items-center p-2 bg-black/30 rounded-lg border border-pink-500/20">
+      <span className="text-pink-200 capitalize text-sm font-medium mb-1">
+        {day.substring(0, 3)}
+      </span>
+      <label className="flex items-center">
+        <input
+          type="checkbox"
+          checked={schedule.available}
+          onChange={(e) => updateAvailability(day, 'available', e.target.checked)}
+          className="w-3 h-3 text-pink-500 bg-black/20 border-pink-500/30 rounded focus:ring-pink-400"
+        />
+        <span className="ml-1 text-pink-300 text-xs">
+          {schedule.available ? 'Yes' : 'No'}
+        </span>
+      </label>
+    </div>
+  ))}
+</div>
         
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
