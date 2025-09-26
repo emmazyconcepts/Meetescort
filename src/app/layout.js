@@ -1,8 +1,9 @@
 // src/app/layout.js
-import { Inter } from 'next/font/google';
+import { AuthProvider } from '@/context/AuthContext';
+import { WalletProvider } from '@/context/WalletContext';
 import './globals.css';
+import { NowPaymentsWalletProvider } from '@/context/NowPaymentsWalletContext';
 
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'MeetAnEscort - Premium Dating Platform',
@@ -12,10 +13,17 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <main className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100">
-          {children}
-        </main>
+      <body className="font-sans bg-gradient-to-br from-gray-900 via-purple-900 to-pink-900">
+        <AuthProvider>
+          <WalletProvider>
+          <NowPaymentsWalletProvider>
+
+            {children}
+
+            </NowPaymentsWalletProvider>
+
+          </WalletProvider>
+        </AuthProvider>
       </body>
     </html>
   );

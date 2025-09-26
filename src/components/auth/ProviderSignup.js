@@ -30,6 +30,7 @@ export default function ProviderSignup() {
     hairColor: '',
     shoeSize: '',
     eyeColor: '',
+    profileComplete: false, // Will be true after photo upload
     languages: ['English'],
     
     // Availability

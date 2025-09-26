@@ -4,8 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import PasswordResetModal from '@/components/ui/PasswordResetModal';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -15,11 +16,42 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
   const router = useRouter();
-  // Add inside the component function:
-const [showResetModal, setShowResetModal] = useState(false);
 
-
+  // Function to get user role and redirect accordingly
+  const redirectBasedOnUserRole = async (user) => {
+    try {
+      // Fetch user data from Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userType = userData.userType; // 'client' or 'provider'
+        
+        // Redirect based on user type
+        if (userType === 'provider') {
+          // Check if provider needs to upload photos
+          const hasPhotos = userData.photos && userData.photos.length >= 3;
+          if (!hasPhotos) {
+            router.push('/dashboard/provider/upload-photos');
+          } else {
+            router.push('/dashboard/provider');
+          }
+        } else {
+          // Default to client dashboard
+          router.push('/dashboard/client');
+        }
+      } else {
+        // If no user data found, redirect to profile completion
+        router.push('/complete-profile');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      // Fallback to client dashboard
+      router.push('/dashboard/client');
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,7 +59,6 @@ const [showResetModal, setShowResetModal] = useState(false);
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
     if (error) setError('');
   };
 
@@ -37,8 +68,8 @@ const [showResetModal, setShowResetModal] = useState(false);
     setError('');
 
     try {
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      router.push('/dashboard');
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      await redirectBasedOnUserRole(userCredential.user);
     } catch (error) {
       console.error('Login error:', error);
       switch (error.code) {
@@ -68,23 +99,14 @@ const [showResetModal, setShowResetModal] = useState(false);
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
-  
+
     try {
       const provider = new GoogleAuthProvider();
       provider.addScope('email');
       provider.addScope('profile');
       
       const result = await signInWithPopup(auth, provider);
-      
-      // Check if this is a new user
-      const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
-      
-      if (isNewUser) {
-        // New user - redirect to profile completion
-        router.push('/complete-profile');
-      } else {
-        router.push('/dashboard');
-      }
+      await redirectBasedOnUserRole(result.user);
     } catch (error) {
       console.error('Google login error:', error);
       if (error.code === 'auth/popup-closed-by-user') {
@@ -98,9 +120,8 @@ const [showResetModal, setShowResetModal] = useState(false);
   };
 
   const handleForgotPassword = () => {
-    // Will implement password reset functionality later
     setShowResetModal(true);
-};
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-pink-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -293,12 +314,14 @@ const [showResetModal, setShowResetModal] = useState(false);
           </div>
         </div>
       </div>
+
+      {/* Password Reset Modal */}
       {showResetModal && (
-  <PasswordResetModal 
-    isOpen={showResetModal} 
-    onClose={() => setShowResetModal(false)} 
-  />
-)}
+        <PasswordResetModal 
+          isOpen={showResetModal} 
+          onClose={() => setShowResetModal(false)} 
+        />
+      )}
 
       <style jsx>{`
         @keyframes gradient {
