@@ -1,54 +1,42 @@
 // src/app/dashboard/provider/wallet/page.js
 'use client';
 import { useState, useEffect } from 'react';
-import { useNowPaymentsWallet } from '@/context/NowPaymentsWalletContext';
+import { useSimpleWallet } from '@/context/SimpleWalletContext';
 import { useAuth } from '@/context/AuthContext';
 
-// Safe component that handles loading states
 export default function WalletPage() {
   const { user } = useAuth();
-  const { balance, deposits, createDeposit, checkDepositStatus, loading } = useNowPaymentsWallet();
-  const [depositAmount, setDepositAmount] = useState('');
-  const [activeDeposit, setActiveDeposit] = useState(null);
+  const { balance, deposits, loading, fixedAmounts, createDeposit } = useSimpleWallet(); // REMOVED confirmDeposit
   const [message, setMessage] = useState('');
-  const [checkingStatus, setCheckingStatus] = useState({});
+  const [activePayment, setActivePayment] = useState(null);
 
   useEffect(() => {
-    // Check for success status in URL
     const urlParams = new URLSearchParams(window.location.search);
     const status = urlParams.get('status');
     
     if (status === 'success') {
-      setMessage('Payment completed! Please wait for confirmation...');
+      setMessage('Payment completed! Waiting for confirmation...');
     } else if (status === 'cancelled') {
       setMessage('Payment was cancelled.');
     }
   }, []);
 
-  const handleDeposit = async (e) => {
-    e.preventDefault();
-    
+  const handleDeposit = async (amount) => {
     if (!user) {
       setMessage('Please log in to make a deposit');
-      return;
-    }
-
-    if (!depositAmount || depositAmount < 5 || depositAmount > 1000) {
-      setMessage('Amount must be between $5 and $1000');
       return;
     }
 
     setMessage('Creating payment...');
 
     try {
-      const result = await createDeposit(parseFloat(depositAmount));
+      const result = await createDeposit(amount);
       
       if (result.success) {
-        setActiveDeposit(result);
+        setActivePayment(result);
         setMessage('');
-        setDepositAmount('');
         
-        // Redirect to NowPayments
+        // Redirect to payment page
         window.open(result.paymentUrl, '_blank');
       } else {
         setMessage(`Error: ${result.error}`);
@@ -58,43 +46,31 @@ export default function WalletPage() {
     }
   };
 
-  const checkStatus = async (depositId) => {
-    setCheckingStatus(prev => ({ ...prev, [depositId]: true }));
-    
-    try {
-      const result = await checkDepositStatus(depositId);
-      
-      if (result.success) {
-        if (result.status === 'confirmed') {
-          setMessage('✅ Deposit confirmed! Your balance has been updated.');
-        } else {
-          setMessage(`Status: ${result.status}`);
-        }
-      } else {
-        setMessage(`Status check failed: ${result.error}`);
-      }
-    } catch (error) {
-      setMessage('Error checking status: ' + error.message);
-    }
-    
-    setCheckingStatus(prev => ({ ...prev, [depositId]: false }));
-  };
 
-  const quickAmounts = [10, 25, 50, 100, 250];
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case 'confirmed':
+        return 'bg-green-100 text-green-800 border border-green-200';
+      case 'pending':
+        return 'bg-amber-100 text-amber-800 border border-amber-200';
+      case 'failed':
+        return 'bg-red-100 text-red-800 border border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border border-gray-200';
+    }
+}
+
+  // REMOVED the dangerous handleManualConfirm function entirely
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed':
       case 'confirmed': return 'bg-green-500/20 text-green-300 border-green-500/30';
-      case 'confirming': 
       case 'pending': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
-      case 'failed':
-      case 'expired': return 'bg-red-500/20 text-red-300 border-red-500/30';
+      case 'failed': return 'bg-red-500/20 text-red-300 border-red-500/30';
       default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }
   };
 
-  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
@@ -106,7 +82,6 @@ export default function WalletPage() {
     );
   }
 
-  // Show login prompt if no user
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
@@ -119,172 +94,220 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-900 to-black">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="bg-black/40 rounded-2xl p-6 border border-pink-500/30 mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">💰 Wallet Balance</h1>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-pink-200">Available Balance</p>
-              <p className="text-4xl font-bold text-pink-400">${balance.toFixed(2)}</p>
+    <div className="min-h-screen p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">💰 Wallet Balance</h1>
+            <p className="text-gray-600">Manage your funds and track deposits</p>
+          </div>
+          
+          {/* Quick Stats */}
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 rounded-xl min-w-[140px]">
+              <p className="text-sm opacity-90">Available Balance</p>
+              <p className="text-2xl font-bold">${balance.toFixed(2)}</p>
             </div>
-            <div className="text-right">
-              <p className="text-pink-200">Total Deposits</p>
-              <p className="text-2xl font-bold text-green-400">
+            
+            <div className="bg-gradient-to-r from-green-500 to-teal-500 text-white p-4 rounded-xl min-w-[140px]">
+              <p className="text-sm opacity-90">Total Deposited</p>
+              <p className="text-2xl font-bold">
                 ${deposits.filter(d => d.status === 'confirmed').reduce((sum, dep) => sum + dep.amountUSD, 0).toFixed(2)}
               </p>
             </div>
           </div>
         </div>
-
-        {/* Deposit Section */}
-        <div className="bg-black/40 rounded-2xl p-6 border border-pink-500/30 mb-6">
-          <h2 className="text-2xl font-bold text-white mb-4">💵 Add Funds with Bitcoin</h2>
-          
-          {!activeDeposit ? (
-            <form onSubmit={handleDeposit} className="space-y-4">
-              <div>
-                <label className="block text-pink-200 mb-2">Amount to Deposit (USD)</label>
-                <input
-                  type="number"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  min="5"
-                  max="1000"
-                  step="0.01"
-                  className="w-full px-4 py-3 bg-black/50 border border-pink-500/50 rounded-lg text-white focus:outline-none focus:border-pink-400"
-                  placeholder="Enter amount ($5-1000)"
-                  required
-                />
-                <p className="text-pink-300 text-sm mt-1">Minimum $5, Maximum $1000</p>
+      </div>
+  
+      {/* Deposit Section */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">💵 Add Funds with Crypto</h2>
+        <p className="text-gray-600 mb-6">Choose an amount to deposit instantly</p>
+        
+        {/* Amount Selection */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {fixedAmounts.map((item) => (
+            <button
+              key={item.amount}
+              onClick={() => handleDeposit(item.amount)}
+              className="p-4 bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-xl hover:border-blue-400 hover:shadow-md transition-all duration-200 group"
+            >
+              <div className="text-center">
+                <div className="text-lg font-bold text-gray-900 group-hover:text-blue-600">${item.amount}</div>
+                <div className="text-xs text-gray-500 mt-1">Crypto</div>
               </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                {quickAmounts.map(amount => (
-                  <button
-                    key={amount}
-                    type="button"
-                    onClick={() => setDepositAmount(amount.toString())}
-                    className="px-4 py-2 bg-pink-500/20 border border-pink-500/30 rounded-lg text-pink-300 hover:bg-pink-500/30 transition duration-200"
-                  >
-                    ${amount}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition duration-200"
-                disabled={!depositAmount}
-              >
-                Pay with Bitcoin
-              </button>
-            </form>
-          ) : (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
-              <h3 className="text-xl font-bold text-green-300 mb-4">🚀 Payment Created</h3>
-              <p className="text-green-200 mb-4">Redirecting to NowPayments to complete your Bitcoin payment...</p>
-              
-              <div className="space-y-2 text-green-200 text-sm">
-                <p><strong>Amount:</strong> ${depositAmount}</p>
-                <p><strong>BTC Amount:</strong> {activeDeposit.btcAmount}</p>
-                <p><strong>Address:</strong> <code className="bg-black/30 p-1 rounded">{activeDeposit.btcAddress}</code></p>
-              </div>
-
-              <div className="mt-4 flex gap-3 flex-wrap">
-                <button
-                  onClick={() => window.open(activeDeposit.paymentUrl, '_blank')}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition duration-200"
-                >
-                  Open Payment Page
-                </button>
-                <button
-                  onClick={() => setActiveDeposit(null)}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition duration-200"
-                >
-                  New Deposit
-                </button>
-              </div>
-            </div>
-          )}
-
-          {message && (
-            <div className={`mt-4 p-3 rounded-lg border ${
-              message.includes('Error') ? 'bg-red-500/20 border-red-500/30 text-red-200' : 
-              message.includes('Please log in') ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-200' :
-              'bg-blue-500/20 border-blue-500/30 text-blue-200'
-            }`}>
-              <p>{message}</p>
-            </div>
-          )}
+            </button>
+          ))}
         </div>
-
-        {/* Deposit History */}
-        <div className="bg-black/40 rounded-2xl p-6 border border-pink-500/30">
-          <h2 className="text-2xl font-bold text-white mb-4">📊 Deposit History</h2>
-          
-          {deposits.length === 0 ? (
-            <p className="text-pink-200 text-center py-8">No deposits yet</p>
-          ) : (
-            <div className="space-y-3">
-              {deposits.map(deposit => (
-                <div key={deposit.id} className="p-4 bg-black/50 rounded-lg border border-pink-500/20 hover:border-pink-500/40 transition duration-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(deposit.status)}`}>
-                        {deposit.status.toUpperCase()}
-                      </span>
-                      <span className="text-pink-200 font-semibold">
+  
+        {/* Features */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+          <div className="flex items-center space-x-2 text-gray-600">
+            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+              <span className="text-green-600">🔒</span>
+            </div>
+            <span>Secure payments</span>
+          </div>
+          <div className="flex items-center space-x-2 text-gray-600">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-blue-600">⚡</span>
+            </div>
+            <span>10-30 min confirmation</span>
+          </div>
+          <div className="flex items-center space-x-2 text-gray-600">
+            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+              <span className="text-purple-600">🛡️</span>
+            </div>
+            <span>Auto verification</span>
+          </div>
+        </div>
+      </div>
+  
+      {/* Active Payment Info */}
+      {activePayment && (
+        <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-2xl p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold mb-1">Payment Created</h3>
+              <p className="opacity-90">Redirecting to payment page for ${activePayment.amount}</p>
+              <p className="text-sm opacity-80 mt-2">Order ID: {activePayment.orderId}</p>
+            </div>
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+              <span className="text-2xl">🎯</span>
+            </div>
+          </div>
+          <div className="mt-3 p-3 bg-white/10 rounded-lg">
+            <p className="text-sm font-medium">Please complete the payment on the NowPayments page</p>
+          </div>
+        </div>
+      )}
+  
+      {/* Message Display */}
+      {message && (
+        <div className={`p-4 rounded-2xl mb-6 ${
+          message.includes('Error') ? 'bg-red-50 border border-red-200 text-red-700' : 
+          message.includes('✅') ? 'bg-green-50 border border-green-200 text-green-700' :
+          'bg-blue-50 border border-blue-200 text-blue-700'
+        }`}>
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">
+              {message.includes('Error') ? '❌' : message.includes('✅') ? '✅' : '💡'}
+            </span>
+            <p className="font-medium">{message}</p>
+          </div>
+        </div>
+      )}
+  
+      {/* Deposit History */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">📊 Deposit History</h2>
+        
+        {deposits.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl text-gray-400">💸</span>
+            </div>
+            <p className="text-gray-500">No deposits yet</p>
+            <p className="text-gray-400 text-sm mt-1">Your deposit history will appear here</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {deposits.map(deposit => (
+              <div key={deposit.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(deposit.status)}`}>
+                      {deposit.status.toUpperCase()}
+                    </span>
+                    <div>
+                      <span className="font-semibold text-gray-900">
                         ${deposit.amountUSD}
                       </span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-pink-300 text-sm">
-                        {deposit.btcAmount} BTC
-                      </div>
-                      <div className="text-gray-400 text-xs">
+                      <span className="text-gray-500 text-sm ml-2">
                         {deposit.createdAt?.toDate().toLocaleDateString()}
-                      </div>
+                      </span>
                     </div>
                   </div>
                   
                   {deposit.status === 'pending' && (
-                    <div className="mt-2 flex items-center justify-between text-xs">
-                      <span className="text-yellow-400">Waiting for payment confirmation...</span>
-                      <button
-                        onClick={() => checkStatus(deposit.id)}
-                        disabled={checkingStatus[deposit.id]}
-                        className="px-2 py-1 bg-pink-500/20 text-pink-300 rounded text-xs hover:bg-pink-500/30 disabled:opacity-50 transition duration-200"
-                      >
-                        {checkingStatus[deposit.id] ? 'Checking...' : 'Check Status'}
-                      </button>
-                    </div>
-                  )}
-                  
-                  {deposit.confirmedAt && (
-                    <div className="mt-2 text-xs text-green-400">
-                      Confirmed: {deposit.confirmedAt.toDate().toLocaleString()}
+                    <div className="flex items-center space-x-2 text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+                      <span className="text-sm">⏳</span>
+                      <span className="text-sm font-medium">Waiting for confirmation</span>
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Info Section */}
-        <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <h4 className="text-blue-300 font-semibold mb-2">💡 How It Works</h4>
-          <div className="text-blue-200 text-sm space-y-1">
-            <p>1. <strong>Enter amount</strong> you want to deposit (USD)</p>
-            <p>2. <strong>Redirect to NowPayments</strong> to complete Bitcoin payment</p>
-            <p>3. <strong>Automatic confirmation</strong> - system detects payment automatically</p>
-            <p>4. <strong>Funds added to wallet</strong> - use for ads and premium features</p>
-            <p className="text-red-200 mt-2">🚫 No withdrawals - funds can only be used on our platform</p>
+                
+                {deposit.orderId && (
+                  <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="text-xs text-gray-500 font-medium">Order ID:</span>
+                    <span className="text-xs bg-gray-100 px-2 py-1 rounded font-mono break-all text-black">
+                      {deposit.orderId}
+                    </span>
+                  </div>
+                )}
+                
+                {deposit.confirmedAt && (
+                  <div className="mt-2 flex items-center space-x-2">
+                    <span className="text-xs text-gray-500 font-medium">Confirmed:</span>
+                    <span className="text-xs text-green-600">
+                      {deposit.confirmedAt.toDate().toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
+        )}
+      </div>
+  
+      {/* How It Works */}
+      <div className="mt-6 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-2xl p-6">
+        <h4 className="font-bold text-lg mb-3">💡 How It Works</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="flex items-start space-x-3">
+            <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-xs">1</span>
+            </div>
+            <div>
+              <strong>Choose amount</strong>
+              <p className="opacity-90 text-xs mt-1">Select from $20, $30, $40, or $50</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-xs">2</span>
+            </div>
+            <div>
+              <strong>Complete Crypto payment</strong>
+              <p className="opacity-90 text-xs mt-1">Secure payment via NowPayments</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-xs">3</span>
+            </div>
+            <div>
+              <strong>Automatic verification</strong>
+              <p className="opacity-90 text-xs mt-1">System verifies payment automatically</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-xs">4</span>
+            </div>
+            <div>
+              <strong>Funds added to wallet</strong>
+              <p className="opacity-90 text-xs mt-1">Balance updates instantly</p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 p-3 bg-white/10 rounded-lg">
+          <p className="text-sm font-medium">🛡️ Confirmation is automatic and secure - no manual intervention needed</p>
         </div>
       </div>
     </div>
+  </div>
   );
 }

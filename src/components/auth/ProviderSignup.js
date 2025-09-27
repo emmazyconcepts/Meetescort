@@ -31,6 +31,9 @@ export default function ProviderSignup() {
     shoeSize: '',
     eyeColor: '',
     profileComplete: false, // Will be true after photo upload
+    vdoc: false, // Will be true after admin approve
+
+    verified: false, // Will be true after admin approve
     languages: ['English'],
     
     // Availability

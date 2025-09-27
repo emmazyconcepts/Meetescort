@@ -6,8 +6,9 @@ import {
   doc, getDoc, setDoc, updateDoc, 
   collection, addDoc, query, where, 
   orderBy, onSnapshot 
-} from 'firebase/firestore'; // REMOVED limit import
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { nowPayments } from '@/lib/nowpayments'; // ADD THIS IMPORT
 
 const NowPaymentsWalletContext = createContext();
 
@@ -56,29 +57,34 @@ export function NowPaymentsWalletProvider({ children }) {
     }
   };
 
-  // Load deposits history - FIXED: Remove limit
+  // Load deposits history - REMOVED the non-existent loadTransactions function
   const loadDeposits = async (userId) => {
     try {
+      // TEMPORARY: Simple query without ordering to avoid index requirement
       const depositsQuery = query(
         collection(db, 'deposits'),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
-        // REMOVED: limit(50) - causing the error
+        where('userId', '==', userId)
+        // REMOVED: orderBy('createdAt', 'desc') to avoid index requirement
       );
-
-      const unsubscribe = onSnapshot(depositsQuery, (snapshot) => {
-        const depositsData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setDeposits(depositsData);
-      }, (error) => {
-        console.error('Deposits snapshot error:', error);
-      });
-
+  
+      const unsubscribe = onSnapshot(depositsQuery, 
+        (snapshot) => {
+          const depositsData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          // Sort manually instead of using orderBy
+          depositsData.sort((a, b) => b.createdAt - a.createdAt);
+          setDeposits(depositsData);
+        }, 
+        (error) => {
+          console.error('Deposits snapshot error:', error);
+        }
+      );
+  
       return unsubscribe;
     } catch (error) {
-      console.error('Error loading deposits:', error);
+      console.error('Error setting up deposits listener:', error);
       return () => {};
     }
   };
@@ -87,7 +93,6 @@ export function NowPaymentsWalletProvider({ children }) {
     if (!authLoading && user) {
       setLoading(true);
       
-      // Initialize wallet and load data
       const loadWalletData = async () => {
         try {
           await initializeWallet(user.uid);
@@ -101,22 +106,22 @@ export function NowPaymentsWalletProvider({ children }) {
 
       loadWalletData();
     } else if (!authLoading && !user) {
-      // User not logged in
       setLoading(false);
       setBalance(0);
       setDeposits([]);
     }
   }, [user, authLoading]);
 
+  // FIXED: nowPayments is now properly imported
   const createDeposit = async (amountUSD) => {
     if (!user) {
       return { success: false, error: 'User not authenticated' };
     }
-  
+
     if (amountUSD < 5 || amountUSD > 1000) {
       return { success: false, error: 'Amount must be between $5 and $1000' };
     }
-  
+
     try {
       const orderId = `deposit_${user.uid}_${Date.now()}`;
       
@@ -139,14 +144,14 @@ export function NowPaymentsWalletProvider({ children }) {
           details: paymentResult.details 
         };
       }
-  
+
       const paymentData = paymentResult.data;
-  
+
       // Create deposit record
       const depositData = {
         userId: user.uid,
         amountUSD: amountUSD,
-        status: isDemoMode ? 'confirmed' : 'pending', // Auto-confirm in demo mode
+        status: isDemoMode ? 'pending' : 'pending', // Start as pending for both modes
         nowpaymentsId: paymentData.id,
         paymentUrl: paymentData.invoice_url,
         btcAmount: paymentData.pay_amount,
@@ -155,16 +160,16 @@ export function NowPaymentsWalletProvider({ children }) {
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 30 * 60 * 1000)
       };
-  
+
       const depositRef = await addDoc(collection(db, 'deposits'), depositData);
-  
-      // If demo mode, auto-confirm the deposit
+
+      // If demo mode, auto-confirm the deposit after 3 seconds
       if (isDemoMode) {
-        setTimeout(() => {
-          confirmDeposit(depositRef.id, depositData.btcAmount);
-        }, 2000); // Auto-confirm after 2 seconds in demo mode
+        setTimeout(async () => {
+          await confirmDeposit(depositRef.id, parseFloat(paymentData.pay_amount));
+        }, 3000);
       }
-  
+
       return {
         success: true,
         depositId: depositRef.id,
@@ -174,9 +179,50 @@ export function NowPaymentsWalletProvider({ children }) {
         expiresAt: depositData.expiresAt,
         isDemo: isDemoMode
       };
-  
+
     } catch (error) {
       console.error('Error creating deposit:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Add confirmDeposit function
+  const confirmDeposit = async (depositId, actualAmountBTC) => {
+    try {
+      const depositDoc = await getDoc(doc(db, 'deposits', depositId));
+      
+      if (!depositDoc.exists()) {
+        return { success: false, error: 'Deposit not found' };
+      }
+
+      const depositData = depositDoc.data();
+      
+      // Update deposit status
+      await updateDoc(doc(db, 'deposits', depositId), {
+        status: 'confirmed',
+        confirmedAt: new Date(),
+        actualAmountBTC: actualAmountBTC
+      });
+
+      // Add funds to user's wallet
+      const walletRef = doc(db, 'wallets', depositData.userId);
+      const walletDoc = await getDoc(walletRef);
+      const currentBalance = walletDoc.exists() ? walletDoc.data().balance : 0;
+      const totalDeposited = walletDoc.exists() ? walletDoc.data().totalDeposited : 0;
+      
+      await updateDoc(walletRef, {
+        balance: currentBalance + depositData.amountUSD,
+        totalDeposited: totalDeposited + depositData.amountUSD,
+        updatedAt: new Date()
+      });
+
+      // Update local balance state
+      setBalance(currentBalance + depositData.amountUSD);
+
+      console.log(`Deposit ${depositId} confirmed successfully`);
+      return { success: true, message: 'Deposit confirmed and funds added' };
+    } catch (error) {
+      console.error('Error confirming deposit:', error);
       return { success: false, error: error.message };
     }
   };
@@ -196,7 +242,6 @@ export function NowPaymentsWalletProvider({ children }) {
       }
 
       // For demo purposes, we'll simulate status checking
-      // In production, you'd call NowPayments API
       return { 
         success: true, 
         status: depositData.status,
@@ -248,6 +293,7 @@ export function NowPaymentsWalletProvider({ children }) {
   const refreshWallet = async () => {
     if (user) {
       await initializeWallet(user.uid);
+      await loadDeposits(user.uid);
     }
   };
 

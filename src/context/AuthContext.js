@@ -7,8 +7,13 @@ import { doc, getDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
+// Add proper error handling to the hook
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
 
 export function AuthProvider({ children }) {
@@ -21,9 +26,13 @@ export function AuthProvider({ children }) {
       if (user) {
         setUser(user);
         // Fetch additional user data from Firestore
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          setUserData(userDoc.data());
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setUserData(userDoc.data());
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
         }
       } else {
         setUser(null);
@@ -52,7 +61,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }
