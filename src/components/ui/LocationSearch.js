@@ -1,53 +1,84 @@
 // src/components/ui/LocationSearch.js
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
 
-export default function LocationSearch({ value, onChange, className }) {
+export default function LocationSearch({ value, onChange, className, name, placeholder }) {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef(null);
 
-  // RapidAPI configuration
-  const RAPIDAPI_KEY = process.env.NEXT_PUBLIC_RAPIDAPI_KEY;
-  const RAPIDAPI_HOST = 'wft-geo-db.p.rapidapi.com';
+  // Common African locations for fallback
+  const commonLocations = [
+    'Lagos, Nigeria',
+    'Abuja, Nigeria',
+    'Port Harcourt, Nigeria',
+    'Ibadan, Nigeria',
+    'Kano, Nigeria',
+    'Benin City, Nigeria',
+    'Accra, Ghana',
+    'Kumasi, Ghana',
+    'Nairobi, Kenya',
+    'Mombasa, Kenya',
+    'Johannesburg, South Africa',
+    'Cape Town, South Africa',
+    'Durban, South Africa',
+    'Cairo, Egypt',
+    'Alexandria, Egypt',
+    'Addis Ababa, Ethiopia',
+    'Dar es Salaam, Tanzania',
+    'Kampala, Uganda',
+    'Abidjan, Ivory Coast',
+    'Dakar, Senegal'
+  ];
 
   const searchLocations = async (query) => {
-    if (!query || query.length < 3) {
-      setSuggestions([]);
+    if (!query || query.length < 2) {
+      // Show common locations when query is short
+      const filtered = commonLocations.filter(loc => 
+        loc.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 8);
+      setSuggestions(filtered.map(loc => ({ value: loc, label: loc })));
       return;
     }
 
     setIsLoading(true);
+    
     try {
-      const response = await axios.get(
-        `https://wft-geo-db.p.rapidapi.com/v1/geo/cities`,
-        {
-          params: {
-            namePrefix: query,
-            limit: 5,
-            sort: '-population'
-          },
-          headers: {
-            'X-RapidAPI-Key': RAPIDAPI_KEY,
-            'X-RapidAPI-Host': RAPIDAPI_HOST
+      // Try RapidAPI GeoDB first
+      if (process.env.NEXT_PUBLIC_RAPIDAPI_KEY) {
+        const response = await fetch(
+          `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${encodeURIComponent(query)}&limit=10&sort=-population`,
+          {
+            headers: {
+              'X-RapidAPI-Key': process.env.NEXT_PUBLIC_RAPIDAPI_KEY,
+              'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
+            }
           }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          const apiSuggestions = data.data.map(city => ({
+            value: `${city.city}, ${city.region}, ${city.country}`,
+            label: `${city.city}, ${city.region}, ${city.country}`
+          }));
+          setSuggestions(apiSuggestions);
+          setIsLoading(false);
+          return;
         }
-      );
-
-      const locations = response.data.data.map(city => ({
-        value: `${city.city}, ${city.region}, ${city.country}`,
-        label: `${city.city}, ${city.region}, ${city.country}`
-      }));
-      
-      setSuggestions(locations);
+      }
     } catch (error) {
-      console.error('Location search error:', error);
-      setSuggestions([]);
-    } finally {
-      setIsLoading(false);
+      console.log('API failed, using fallback suggestions');
     }
+
+    // Fallback: Filter common locations
+    const filtered = commonLocations.filter(loc => 
+      loc.toLowerCase().includes(query.toLowerCase())
+    ).slice(0, 8);
+    
+    setSuggestions(filtered.map(loc => ({ value: loc, label: loc })));
+    setIsLoading(false);
   };
 
   const handleInputChange = (e) => {
@@ -59,7 +90,6 @@ export default function LocationSearch({ value, onChange, className }) {
   const handleSuggestionClick = (suggestion) => {
     onChange(suggestion.value);
     setShowSuggestions(false);
-    setSuggestions([]);
   };
 
   useEffect(() => {
@@ -77,27 +107,28 @@ export default function LocationSearch({ value, onChange, className }) {
     <div className="relative" ref={inputRef}>
       <input
         type="text"
+        name={name}
         value={value}
         onChange={handleInputChange}
         onFocus={() => setShowSuggestions(true)}
         className={className}
-        placeholder="Start typing to search locations..."
+        placeholder={placeholder}
         required
       />
       
       {isLoading && (
-        <div className="absolute right-3 top-3">
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-500"></div>
         </div>
       )}
 
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-gray-900 border border-pink-500/30 rounded-xl shadow-2xl max-h-60 overflow-auto">
+        <div className="absolute z-50 w-full mt-2 bg-gray-900/95 backdrop-blur-md border border-pink-500/30 rounded-xl shadow-2xl max-h-60 overflow-auto">
           {suggestions.map((suggestion, index) => (
             <div
               key={index}
               onClick={() => handleSuggestionClick(suggestion)}
-              className="px-4 py-3 cursor-pointer hover:bg-pink-500/10 transition duration-200 border-b border-pink-500/10 last:border-b-0"
+              className="px-4 py-3 cursor-pointer hover:bg-pink-500/20 transition duration-200 border-b border-pink-500/10 last:border-b-0"
             >
               <div className="text-white font-medium">{suggestion.label.split(',')[0]}</div>
               <div className="text-pink-300 text-sm">
@@ -108,9 +139,9 @@ export default function LocationSearch({ value, onChange, className }) {
         </div>
       )}
 
-      {showSuggestions && !isLoading && value.length >= 3 && suggestions.length === 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-gray-900 border border-pink-500/30 rounded-xl p-4 text-pink-300">
-          No locations found. Try a different search term.
+      {showSuggestions && !isLoading && value.length >= 2 && suggestions.length === 0 && (
+        <div className="absolute z-50 w-full mt-2 bg-gray-900/95 backdrop-blur-md border border-pink-500/30 rounded-xl p-4 text-pink-300">
+          No specific locations found. Try searching for broader areas like "Nigeria" or "Ghana".
         </div>
       )}
     </div>

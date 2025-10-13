@@ -1,10 +1,15 @@
 // src/app/page.js
 'use client';
+import LocationSearch from '@/components/ui/LocationSearch';
 import Link from 'next/link';
+import FeaturedProfiles from '@/components/FeaturedProfiles';
+
 import { useEffect, useState } from 'react';
 
 export default function Home() {
   const [isVisible, setIsVisible] = useState(false);
+
+  const [searchLocation, setSearchLocation] = useState('');
 
   useEffect(() => {
     setIsVisible(true);
@@ -42,48 +47,80 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-16 relative">
-        <div className={`max-w-4xl mx-auto text-center transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <div className="mb-8">
-            <span className="bg-pink-500/20 text-pink-300 px-4 py-2 rounded-full text-sm font-medium border border-pink-500/30 animate-pulse">
-              Premium Dating Experience
-            </span>
-          </div>
-          
-          <h1 className="text-5xl sm:text-7xl font-bold text-white mb-6 leading-tight">
-            Find Your
-            <span className="block bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent animate-gradient">
-              Perfect Match
-            </span>
-          </h1>
-          
-          <p className="text-xl text-pink-100 mb-8 max-w-2xl mx-auto leading-relaxed opacity-90">
-            Discover exclusive connections with verified professionals. 
-            <span className="block text-pink-300 font-medium">Discreet, secure, and unforgettable experiences await.</span>
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link 
-              href="/register" 
-              className="group bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-pink-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-pink-500/30 relative overflow-hidden"
-            >
-              <span className="relative z-10">Start Your Journey</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-            </Link>
-            
-            <Link 
-              href="/discover" 
-              className="group border-2 border-pink-500/50 text-pink-300 px-8 py-4 rounded-xl font-semibold hover:bg-pink-500/10 hover:border-pink-400 transition-all duration-300 transform hover:scale-105 hover:text-white"
-            >
-              <span className="flex items-center justify-center gap-2">
-                Explore Profiles
-                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-          </div>
+  <div className={`max-w-6xl mx-auto text-center transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+    <div className="mb-8">
+      <span className="bg-pink-500/20 text-pink-300 px-4 py-2 rounded-full text-sm font-medium border border-pink-500/30 animate-pulse">
+        Premium Dating Experience
+      </span>
+    </div>
+    
+    <h1 className="text-5xl sm:text-7xl font-bold text-white mb-6 leading-tight">
+      Find Your
+      <span className="block bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent animate-gradient">
+        Perfect Match
+      </span>
+    </h1>
+    
+    <p className="text-xl text-pink-100 mb-8 max-w-2xl mx-auto leading-relaxed opacity-90">
+      Discover exclusive connections with verified professionals. 
+      <span className="block text-pink-300 font-medium">Discreet, secure, and unforgettable experiences await.</span>
+    </p>
+
+    {/* Big Search Bar */}
+    <div className="max-w-2xl mx-auto mb-8">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const location = formData.get('location');
+        if (location) {
+          window.location.href = `/discover?location=${encodeURIComponent(location)}`;
+        }
+      }}>
+        <div className="relative">
+          <LocationSearch
+            name="location"
+            value={searchLocation}
+            onChange={setSearchLocation}
+            className="w-full px-6 py-4 text-lg bg-black/30 border-2 border-pink-500/50 rounded-2xl text-white placeholder-pink-300/70 focus:outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-500/20 transition-all duration-300 backdrop-blur-sm"
+            placeholder="🌍 Enter city, state, or country..."
+          />
+          <button 
+            type="submit"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-pink-500/30"
+          >
+            Search
+          </button>
         </div>
-      </section>
+      </form>
+    </div>
+    
+    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+      <Link 
+        href="/register" 
+        className="group bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-pink-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-pink-500/30 relative overflow-hidden"
+      >
+        <span className="relative z-10">Start Your Journey</span>
+        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+      </Link>
+      
+      <Link 
+        href="/discover" 
+        className="group border-2 border-pink-500/50 text-pink-300 px-8 py-4 rounded-xl font-semibold hover:bg-pink-500/10 hover:border-pink-400 transition-all duration-300 transform hover:scale-105 hover:text-white"
+      >
+        <span className="flex items-center justify-center gap-2">
+          Explore All Profiles
+          <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </span>
+      </Link>
+    </div>
+  </div>
+</section>
+
+
+<FeaturedProfiles />
+
 
       {/* Features Section */}
       <section className="py-20 relative">
