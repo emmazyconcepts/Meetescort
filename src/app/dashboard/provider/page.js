@@ -3,52 +3,41 @@
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function ProviderDashboard() {
   const { userData, loading } = useAuth();
   const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Redirect based on verification status
   useEffect(() => {
     if (!loading && userData) {
       if (!userData.vDoc) {
+        setIsRedirecting(true);
         router.push("/dashboard/provider/verification");
       } else if (!userData.verified) {
+        setIsRedirecting(true);
         router.push("/dashboard/provider/pending-verification");
       }
     }
   }, [userData, loading, router]);
 
-  // Check verification status
-  if (loading) {
+  // Show loading state
+  if (loading || isRedirecting) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <p className="text-gray-600">
+            {isRedirecting ? "Redirecting..." : "Loading dashboard..."}
+          </p>
         </div>
       </div>
     );
   }
 
-  useEffect(() => {
-    if (!loading && userData) {
-      // Redirect to verification if no vDoc
-      if (!userData.vDoc) {
-        router.push("/dashboard/provider/verification");
-        return;
-      }
-
-      // Redirect to pending verification if not verified
-      if (!userData.verified) {
-        router.push("/dashboard/provider/pending-verification");
-        return;
-      }
-    }
-  }, [userData, loading, router]);
-
-  // If user doesn't have vDoc, they'll be redirected automatically
+  // If user doesn't have vDoc or isn't verified, show redirect message
   if (!userData?.vDoc || !userData?.verified) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -96,7 +85,7 @@ export default function ProviderDashboard() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Welcome back, {userData?.displayName || "Provider"}! 👋
           </h1>
-          <p className="text-gray-600">Here's your dashboard overview</p>
+          <p className="text-gray-600">Here&apos;s your dashboard overview</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -1,42 +1,49 @@
 // src/app/dashboard/provider/verification/page.js
-'use client';
-import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
-import { uploadToImgBB, optimizeImage } from '@/lib/imgbb';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+"use client";
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { uploadToImgBB, optimizeImage } from "@/lib/imgbb";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function VerificationPage() {
   const { user, userData } = useAuth();
   const router = useRouter();
   const [verificationDoc, setVerificationDoc] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleDocUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     // Validate file
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    const validTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+      "application/pdf",
+    ];
     if (!validTypes.includes(file.type)) {
-      setError('Please upload a JPEG, PNG, or PDF file');
+      setError("Please upload a JPEG, PNG, or PDF file");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError('File size must be less than 5MB');
+      setError("File size must be less than 5MB");
       return;
     }
 
-    setError('');
+    setError("");
     setVerificationDoc({
       file: file,
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+      preview: file.type.startsWith("image/")
+        ? URL.createObjectURL(file)
+        : null,
       name: file.name,
       size: file.size,
-      type: file.type
+      type: file.type,
     });
   };
 
@@ -45,23 +52,23 @@ export default function VerificationPage() {
       URL.revokeObjectURL(verificationDoc.preview);
     }
     setVerificationDoc(null);
-    setError('');
+    setError("");
   };
 
   const submitVerification = async (e) => {
     e.preventDefault();
     if (!verificationDoc) {
-      setError('Please upload a verification document');
+      setError("Please upload a verification document");
       return;
     }
 
     setUploading(true);
-    setError('');
+    setError("");
 
     try {
       // Upload document to ImgBB
-      let docUrl = '';
-      if (verificationDoc.file.type.startsWith('image/')) {
+      let docUrl = "";
+      if (verificationDoc.file.type.startsWith("image/")) {
         const optimizedFile = await optimizeImage(verificationDoc.file);
         const result = await uploadToImgBB(optimizedFile);
         if (!result.success) throw new Error(result.error);
@@ -75,23 +82,22 @@ export default function VerificationPage() {
       }
 
       // Update user document
-      await updateDoc(doc(db, 'users', user.uid), {
+      await updateDoc(doc(db, "users", user.uid), {
         vDoc: true,
         verificationDoc: {
           url: docUrl,
           type: verificationDoc.type,
           name: verificationDoc.name,
           uploadedAt: new Date().toISOString(),
-          verified: false // Admin will set this to true
+          verified: false, // Admin will set this to true
         },
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       });
 
       // Redirect to pending verification page
-      router.push('/dashboard/provider/pending-verification');
-
+      router.push("/dashboard/provider/pending-verification");
     } catch (error) {
-      console.error('Verification upload error:', error);
+      console.error("Verification upload error:", error);
       setError(`Upload failed: ${error.message}`);
     } finally {
       setUploading(false);
@@ -102,8 +108,12 @@ export default function VerificationPage() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Please Log In</h2>
-          <p className="text-gray-600">You need to be logged in to access verification.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Please Log In
+          </h2>
+          <p className="text-gray-600">
+            You need to be logged in to access verification.
+          </p>
         </div>
       </div>
     );
@@ -117,9 +127,12 @@ export default function VerificationPage() {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🔒</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Identity Verification Required</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Identity Verification Required
+            </h1>
             <p className="text-gray-600">
-              To ensure the safety of our community, we require all providers to verify their identity.
+              To ensure the safety of our community, we require all providers to
+              verify their identity.
             </p>
           </div>
 
@@ -130,9 +143,13 @@ export default function VerificationPage() {
           )}
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-blue-900 mb-2">📋 Required Documents</h3>
+            <h3 className="font-semibold text-blue-900 mb-2">
+              📋 Required Documents
+            </h3>
             <ul className="text-blue-700 text-sm space-y-1">
-              <li>• Government-issued ID (Driver's license, Passport, National ID)</li>
+              <li>
+                • Government-issued ID (Drivers license, Passport, National ID)
+              </li>
               <li>• Must be clear and readable</li>
               <li>• File size: Maximum 5MB</li>
               <li>• Formats: JPEG, PNG, or PDF</li>
@@ -145,11 +162,15 @@ export default function VerificationPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Upload Verification Document
               </label>
-              
+
               {!verificationDoc ? (
-                <div className={`border-2 border-dashed rounded-lg p-8 text-center transition duration-200 ${
-                  uploading ? 'border-gray-300 cursor-not-allowed' : 'border-blue-300 hover:border-blue-400 cursor-pointer'
-                }`}>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition duration-200 ${
+                    uploading
+                      ? "border-gray-300 cursor-not-allowed"
+                      : "border-blue-300 hover:border-blue-400 cursor-pointer"
+                  }`}
+                >
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.pdf"
@@ -160,10 +181,14 @@ export default function VerificationPage() {
                   />
                   <label
                     htmlFor="doc-upload"
-                    className={`block ${uploading ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                    className={`block ${
+                      uploading ? "cursor-not-allowed" : "cursor-pointer"
+                    }`}
                   >
                     <div className="text-3xl mb-3">📄</div>
-                    <div className="font-semibold text-blue-600 mb-1">Click to upload document</div>
+                    <div className="font-semibold text-blue-600 mb-1">
+                      Click to upload document
+                    </div>
                     <div className="text-gray-500 text-sm">
                       JPEG, PNG, or PDF (Max 5MB)
                     </div>
@@ -174,10 +199,14 @@ export default function VerificationPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                        {verificationDoc.type.startsWith('image/') ? '🖼️' : '📄'}
+                        {verificationDoc.type.startsWith("image/")
+                          ? "🖼️"
+                          : "📄"}
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">{verificationDoc.name}</div>
+                        <div className="font-medium text-gray-900">
+                          {verificationDoc.name}
+                        </div>
                         <div className="text-gray-500 text-sm">
                           {(verificationDoc.size / 1024 / 1024).toFixed(2)} MB
                         </div>
@@ -204,8 +233,10 @@ export default function VerificationPage() {
                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mt-1"
               />
               <label className="text-sm text-gray-600">
-                I confirm that the document I'm uploading is a valid government-issued ID and that I am the person depicted in the document.
-                I understand that this information will be used solely for verification purposes and will be handled securely.
+                I confirm that the document I am uploading is a valid
+                government-issued ID and that I am the person depicted in the
+                document. I understand that this information will be used solely
+                for verification purposes and will be handled securely.
               </label>
             </div>
 
@@ -221,12 +252,15 @@ export default function VerificationPage() {
                   Uploading...
                 </>
               ) : (
-                'Submit for Verification'
+                "Submit for Verification"
               )}
             </button>
 
             <div className="text-center text-sm text-gray-500">
-              <p>Verification typically takes 24-48 hours. You'll be notified once approved.</p>
+              <p>
+                Verification typically takes 24-48 hours. You will be notified
+                once approved.
+              </p>
             </div>
           </form>
         </div>
