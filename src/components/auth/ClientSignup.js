@@ -141,7 +141,7 @@ export default function ClientSignup() {
           placeholder="your@email.com"
         />
         <p className="mt-1 text-xs text-pink-300/70">
-          We recommend you don't use a business or shared email address.
+          We recommend you don&apos;t use a business or shared email address.
         </p>
       </div>
 
