@@ -12,7 +12,7 @@ export default function ClientDashboard() {
         {/* Welcome Section */}
         <div className="bg-black/20 rounded-2xl p-8 border border-pink-500/20 mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">
-            Welcome back, {userData?.displayName || "Client"}! 👋
+            Welcome back , {userData?.displayName || "Client"}! 👋
           </h1>
           <p className="text-pink-200">
             Ready to find your perfect match? Browse verified providers in your
