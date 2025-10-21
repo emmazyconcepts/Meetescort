@@ -169,7 +169,7 @@ export default function ClientSignup() {
             htmlFor="confirmPassword"
             className="block text-sm font-medium text-pink-200 mb-2"
           >
-            Repeat Password *
+            Repeat Password **
           </label>
           <input
             type="password"
