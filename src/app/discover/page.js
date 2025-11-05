@@ -5,12 +5,13 @@ import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import LocationSearch from "@/components/ui/LocationSearch";
 import ProfileCard from "@/components/ProfileCard";
+import { useRouter } from "next/navigation";
 
-export default function DiscoverPage() {
+export default function DiscoverPage({ initialLocation = "" }) {
   const [profiles, setProfiles] = useState([]);
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchLocation, setSearchLocation] = useState("");
+  const [searchLocation, setSearchLocation] = useState(initialLocation);
   const [filters, setFilters] = useState({
     gender: "",
     ageRange: "",
@@ -18,14 +19,32 @@ export default function DiscoverPage() {
     sortBy: "recent",
   });
 
-  // Get location from URL parameters
+  const router = useRouter();
+
+  // Get location from URL parameters (for old format)
   useEffect(() => {
+    if (initialLocation) {
+      // If we got location from new URL format, use it
+      setSearchLocation(initialLocation);
+      return;
+    }
+
+    // Fallback to old URL format
     const urlParams = new URLSearchParams(window.location.search);
     const locationParam = urlParams.get("location");
     if (locationParam) {
-      setSearchLocation(decodeURIComponent(locationParam));
+      const decodedLocation = decodeURIComponent(locationParam);
+      setSearchLocation(decodedLocation);
+
+      // Redirect to new URL format
+      const urlFriendly = decodedLocation
+        .toLowerCase()
+        .replace(/\s*,\s*/g, "-")
+        .replace(/\s+/g, "-");
+
+      router.replace(`/discover/${urlFriendly}`);
     }
-  }, []);
+  }, [initialLocation, router]);
 
   // Load profiles and ads
   useEffect(() => {
@@ -74,34 +93,64 @@ export default function DiscoverPage() {
     }
   };
 
+  // Advanced location matching that works worldwide
   const filterProfilesByLocation = (profiles, location) => {
     if (!location) return profiles;
 
     const searchTerms = location
       .toLowerCase()
       .split(",")
-      .map((term) => term.trim());
+      .map((term) => term.trim().replace(/\s+/g, "")) // Remove spaces for matching
+      .filter((term) => term);
 
     return profiles.filter((profile) => {
       if (!profile.location) return false;
 
-      const profileLocation = profile.location.toLowerCase();
+      const profileLocation = profile.location
+        .toLowerCase()
+        .replace(/\s+/g, "");
 
-      // Exact match check
-      if (profileLocation.includes(location.toLowerCase())) {
+      // Multiple matching strategies:
+
+      // 1. Exact compressed match
+      const compressedSearch = location.toLowerCase().replace(/\s+/g, "");
+      if (profileLocation.includes(compressedSearch)) {
         return true;
       }
 
-      // Progressive fallback matching
-      for (let i = searchTerms.length; i > 0; i--) {
-        const partialSearch = searchTerms.slice(0, i).join(", ");
-        if (profileLocation.includes(partialSearch)) {
-          return true;
-        }
+      // 2. All terms match (in any order)
+      const allTermsMatch = searchTerms.every((term) =>
+        profileLocation.includes(term)
+      );
+      if (allTermsMatch) return true;
+
+      // 3. Partial match - at least one significant term matches
+      const significantTerms = searchTerms.filter((term) => term.length > 2);
+      if (significantTerms.length > 0) {
+        const someTermsMatch = significantTerms.some((term) =>
+          profileLocation.includes(term)
+        );
+        if (someTermsMatch) return true;
       }
 
       return false;
     });
+  };
+
+  // Handle search form submission
+  const handleSearch = (location) => {
+    if (!location) return;
+
+    setSearchLocation(location);
+
+    // Convert to URL-friendly format
+    const urlFriendly = location
+      .toLowerCase()
+      .replace(/\s*,\s*/g, "-")
+      .replace(/\s+/g, "-");
+
+    // Update URL to new format
+    router.push(`/discover/${urlFriendly}`);
   };
 
   // Combine ads and profiles, prioritize ads
@@ -177,13 +226,7 @@ export default function DiscoverPage() {
               const formData = new FormData(e.target);
               const location = formData.get("location");
               if (location) {
-                setSearchLocation(location);
-                // Update URL without page reload
-                window.history.pushState(
-                  {},
-                  "",
-                  `/discover?location=${encodeURIComponent(location)}`
-                );
+                handleSearch(location);
               }
             }}
           >
@@ -207,6 +250,7 @@ export default function DiscoverPage() {
           </form>
         </div>
 
+        {/* Rest of your existing code remains exactly the same */}
         {/* Filters */}
         <div className="bg-black/30 rounded-2xl p-6 mb-8 border border-pink-500/20">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -313,7 +357,7 @@ export default function DiscoverPage() {
                 <button
                   onClick={() => {
                     setSearchLocation("");
-                    window.history.pushState({}, "", "/discover");
+                    router.push("/discover");
                   }}
                   className="bg-pink-500 text-white px-6 py-2 rounded-lg hover:bg-pink-600 transition duration-300"
                 >

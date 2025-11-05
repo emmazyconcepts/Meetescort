@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("edit"); // 'edit' or 'view'
 
   // Form state
+  // In the form state initialization, add phone and bio:
   const [formData, setFormData] = useState({
     displayName: "",
     age: "",
@@ -34,6 +35,8 @@ export default function ProfilePage() {
     outcallPrice: "",
     catersTo: "both",
     languages: [],
+    phone: "", // Add phone
+    bio: "", // Add bio
     availability: {
       monday: { available: true, hours: "9:00 AM - 6:00 PM" },
       tuesday: { available: true, hours: "9:00 AM - 6:00 PM" },
@@ -51,6 +54,7 @@ export default function ProfilePage() {
   const [uploadProgress, setUploadProgress] = useState({});
 
   // Load user data
+  // In the useEffect that loads user data:
   useEffect(() => {
     if (userData) {
       setFormData({
@@ -67,6 +71,8 @@ export default function ProfilePage() {
         outcallPrice: userData.outcallPrice || "",
         catersTo: userData.catersTo || "both",
         languages: userData.languages || [],
+        phone: userData.phone || userData.contactPhone || "", // Load phone
+        bio: userData.bio || "", // Load bio
         availability: userData.availability || {
           monday: { available: true, hours: "9:00 AM - 6:00 PM" },
           tuesday: { available: true, hours: "9:00 AM - 6:00 PM" },
@@ -463,6 +469,50 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-gray-700 mb-2 font-medium">
+                    About Me
+                  </label>
+                  <textarea
+                    name="bio"
+                    value={formData.bio}
+                    onChange={handleInputChange}
+                    rows={4}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="Tell clients about yourself, your personality, and what makes your service special..."
+                  />
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-xs text-gray-500">
+                      This helps clients get to know you better
+                    </p>
+                    <span
+                      className={`text-xs ${
+                        (formData.bio?.length || 0) < 50
+                          ? "text-yellow-600"
+                          : "text-green-600"
+                      }`}
+                    >
+                      {formData.bio?.length || 0}/50 characters
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-2 font-medium">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="+1 234 567 8900"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your phone number for client contact
+                  </p>
+                </div>
+
                 {/* Contact & Pricing Card */}
                 <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">
@@ -811,6 +861,7 @@ export default function ProfilePage() {
                         label="Caters To"
                         value={formData.catersTo}
                       />
+                      <ProfileField label="Phone" value={formData.phone} />
                     </div>
                   </div>
 

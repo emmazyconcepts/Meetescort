@@ -1,6 +1,7 @@
 // src/components/ui/LocationSearch.js
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LocationSearch({
   value,
@@ -8,35 +9,42 @@ export default function LocationSearch({
   className,
   name,
   placeholder,
+  onSearch,
 }) {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef(null);
+  const router = useRouter();
 
-  // Common African locations for fallback
+  // Common locations
   const commonLocations = [
     "Lagos, Nigeria",
     "Abuja, Nigeria",
     "Port Harcourt, Nigeria",
-    "Ibadan, Nigeria",
-    "Kano, Nigeria",
     "Benin City, Nigeria",
     "Accra, Ghana",
-    "Kumasi, Ghana",
     "Nairobi, Kenya",
-    "Mombasa, Kenya",
     "Johannesburg, South Africa",
     "Cape Town, South Africa",
-    "Durban, South Africa",
     "Cairo, Egypt",
-    "Alexandria, Egypt",
-    "Addis Ababa, Ethiopia",
-    "Dar es Salaam, Tanzania",
-    "Kampala, Uganda",
-    "Abidjan, Ivory Coast",
-    "Dakar, Senegal",
+    "New York, USA",
+    "Los Angeles, USA",
+    "London, UK",
+    "Paris, France",
+    "Tokyo, Japan",
   ];
+
+  const makeCleanUrl = (location) => {
+    if (!location) return "";
+
+    return location
+      .toLowerCase()
+      .split(",")
+      .map((part) => part.trim().replace(/\s+/g, ""))
+      .filter((part) => part)
+      .join("/");
+  };
 
   const searchLocations = async (query) => {
     if (!query || query.length < 2) {
@@ -92,12 +100,52 @@ export default function LocationSearch({
   const handleInputChange = (e) => {
     const newValue = e.target.value;
     onChange(newValue);
-    searchLocations(newValue);
+
+    // Only search if input is not empty
+    if (newValue.trim()) {
+      searchLocations(newValue);
+    } else {
+      setSuggestions([]);
+    }
   };
 
   const handleSuggestionClick = (suggestion) => {
     onChange(suggestion.value);
     setShowSuggestions(false);
+
+    const cleanUrl = makeCleanUrl(suggestion.value);
+
+    if (onSearch) {
+      onSearch(suggestion.value, cleanUrl);
+    } else {
+      router.push(`/discover/${cleanUrl}`);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && value) {
+      e.preventDefault();
+
+      const cleanUrl = makeCleanUrl(value);
+
+      if (onSearch) {
+        onSearch(value, cleanUrl);
+      } else {
+        router.push(`/discover/${cleanUrl}`);
+      }
+
+      setShowSuggestions(false);
+    }
+  };
+
+  // Show common locations when input is focused and empty
+  const handleFocus = () => {
+    setShowSuggestions(true);
+    if (!value && suggestions.length === 0) {
+      setSuggestions(
+        commonLocations.slice(0, 8).map((loc) => ({ value: loc, label: loc }))
+      );
+    }
   };
 
   useEffect(() => {
@@ -118,7 +166,8 @@ export default function LocationSearch({
         name={name}
         value={value}
         onChange={handleInputChange}
-        onFocus={() => setShowSuggestions(true)}
+        onKeyPress={handleKeyPress}
+        onFocus={handleFocus}
         className={className}
         placeholder={placeholder}
         required
@@ -154,8 +203,7 @@ export default function LocationSearch({
         value.length >= 2 &&
         suggestions.length === 0 && (
           <div className="absolute z-50 w-full mt-2 bg-gray-900/95 backdrop-blur-md border border-pink-500/30 rounded-xl p-4 text-pink-300">
-            No specific locations found. Try searching for broader areas like
-            USA or Canada.
+            No locations found. Try a different search term.
           </div>
         )}
     </div>

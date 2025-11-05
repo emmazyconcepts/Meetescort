@@ -16,6 +16,7 @@ export default function ProviderSignup() {
     email: "",
     password: "",
     confirmPassword: "",
+    bio: "", // Add this line
 
     // Location & Services
     location: "",
@@ -30,9 +31,9 @@ export default function ProviderSignup() {
     shoeSize: "",
     eyeColor: "",
     profileComplete: false, // Will be true after photo upload
-    vdoc: false, // Will be true after admin approve
+    vdoc: true, // Will be true after admin approve
 
-    verified: false, // Will be true after admin approve
+    verified: true, // Will be true after admin approve
     languages: ["English"],
 
     // Availability
@@ -143,20 +144,26 @@ export default function ProviderSignup() {
         if (!formData.age) {
           return "Please select your age range";
         }
+        if (!formData.bio?.trim()) {
+          return "About Me section is required";
+        }
+        if (formData.bio.length < 50) {
+          return "About Me should be at least 50 characters long";
+        }
         break;
       case 3:
         if (!formData.incallHours?.trim()) {
           return "Please specify incall hours/duration";
         }
-        if (!formData.incallPrice || parseFloat(formData.incallPrice) <= 0) {
-          return "Please enter a valid incall price";
-        }
+        // if (!formData.incallPrice || parseFloat(formData.incallPrice) <= 0) {
+        //   return "Please enter a valid incall price";
+        // }
         if (!formData.outcallHours?.trim()) {
           return "Please specify outcall hours/duration";
         }
-        if (!formData.outcallPrice || parseFloat(formData.outcallPrice) <= 0) {
-          return "Please enter a valid outcall price";
-        }
+        // if (!formData.outcallPrice || parseFloat(formData.outcallPrice) <= 0) {
+        //   return "Please enter a valid outcall price";
+        // }
         break;
       case 4:
         if (!formData.phone) {
@@ -221,6 +228,8 @@ export default function ProviderSignup() {
       // Prepare user data for Firestore
       const userData = {
         userType: "provider",
+        bio: formData.bio.trim(), // Add this line
+
         displayName: formData.displayName.trim(),
         email: formData.email.trim(),
         location: formData.location,
@@ -239,11 +248,13 @@ export default function ProviderSignup() {
         incallPrice: formData.incallPrice,
         outcallPrice: formData.outcallPrice,
         website: formData.website,
-        agreeToTerms: formData.agreeToTerms,
+        // PHONE NUMBER FIELDS - ADD THESE
+        phone: formData.phone, // This is the main phone number
+        contactPhone: formData.phone, // Also save as contactPhone for consistency        agreeToTerms: formData.agreeToTerms,
         createdAt: new Date(),
         lastActive: new Date(),
         profileComplete: true,
-        verified: false,
+        verified: true,
       };
 
       // Remove empty fields
@@ -256,10 +267,9 @@ export default function ProviderSignup() {
           delete userData[key];
         }
       });
-
       await setDoc(doc(db, "users", userCredential.user.uid), userData);
 
-      router.push("/dashboard");
+      router.push("/dashboard/provider");
     } catch (error) {
       console.error("Provider signup error:", error);
       setError(error.message || "Failed to create account. Please try again.");
@@ -471,6 +481,36 @@ export default function ProviderSignup() {
             className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
             placeholder="Brunette"
           />
+        </div>
+      </div>
+
+      {/* About Me Section - Added Here */}
+      <div>
+        <label className="block text-sm font-medium text-pink-200 mb-2">
+          About Me *
+        </label>
+        <textarea
+          name="bio"
+          value={formData.bio || ""}
+          onChange={handleChange}
+          rows={5}
+          className="w-full px-4 py-3 bg-black/20 border border-pink-500/30 rounded-xl text-white placeholder-pink-300/50 focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition duration-200"
+          placeholder="Tell clients about yourself, your personality, interests, and what makes your service special. This is your chance to make a great first impression!"
+          required
+        />
+        <div className="flex justify-between items-center mt-1">
+          <p className="text-xs text-pink-300/70">
+            Minimum 50 characters recommended
+          </p>
+          <span
+            className={`text-xs ${
+              (formData.bio?.length || 0) < 50
+                ? "text-yellow-400"
+                : "text-green-400"
+            }`}
+          >
+            {formData.bio?.length || 0}/50 characters
+          </span>
         </div>
       </div>
     </div>

@@ -11,17 +11,17 @@ export default function ProviderDashboard() {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Redirect based on verification status
-  useEffect(() => {
-    if (!loading && userData) {
-      if (!userData.vDoc) {
-        setIsRedirecting(true);
-        router.push("/dashboard/provider/verification");
-      } else if (!userData.verified) {
-        setIsRedirecting(true);
-        router.push("/dashboard/provider/pending-verification");
-      }
-    }
-  }, [userData, loading, router]);
+  // useEffect(() => {
+  //   if (!loading && userData) {
+  //     if (!userData.vDoc) {
+  //       setIsRedirecting(true);
+  //       router.push("/dashboard/provider/verification");
+  //     } else if (!userData.verified) {
+  //       setIsRedirecting(true);
+  //       router.push("/dashboard/provider/pending-verification");
+  //     }
+  //   }
+  // }, [userData, loading, router]);
 
   // Show loading state
   if (loading || isRedirecting) {
@@ -38,16 +38,16 @@ export default function ProviderDashboard() {
   }
 
   // If user doesn't have vDoc or isn't verified, show redirect message
-  if (!userData?.vDoc || !userData?.verified) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to verification...</p>
-        </div>
-      </div>
-    );
-  }
+  // if (!userData?.vDoc || !userData?.verified) {
+  //   return (
+  //     <div className="min-h-screen bg-white flex items-center justify-center">
+  //       <div className="text-center">
+  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+  //         <p className="text-gray-600">Redirecting to verification...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Check if provider needs to complete profile (upload photos)
   const needsPhotoUpload = !userData?.photos || userData.photos.length < 3;

@@ -6,9 +6,14 @@ import FeaturedProfiles from "@/components/FeaturedProfiles";
 
 import { useEffect, useState } from "react";
 
+import { FaTwitter, FaInstagram, FaTiktok } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+
 export default function Home() {
   const [isVisible, setIsVisible] = useState(false);
   const [searchLocation, setSearchLocation] = useState("");
+
+  const router = useRouter();
 
   useEffect(() => {
     setIsVisible(true);
@@ -106,6 +111,10 @@ export default function Home() {
                   name="location"
                   value={searchLocation}
                   onChange={setSearchLocation}
+                  onSearch={(location, urlFriendly) => {
+                    setSearchLocation(location);
+                    router.push(`/discover/${urlFriendly}`);
+                  }}
                   className="w-full px-6 py-4 text-lg bg-black/30 border-2 border-pink-500/50 rounded-2xl text-white placeholder-pink-300/70 focus:outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-500/20 transition-all duration-300 backdrop-blur-sm"
                   placeholder="🌍 Enter city, state, or country..."
                 />
@@ -336,33 +345,126 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-black/30 backdrop-blur-md border-t border-pink-500/20 py-8 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-pink-200/70 text-sm mb-4 md:mb-0">
-              © 2024 MeetAnEscort • Premium Dating Platform • Discreet & Secure
+      <footer className="bg-neutral-950 text-neutral-300 pt-12 pb-6 mt-10 border-t border-neutral-800">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8">
+          {/* Brand */}
+          <div className="col-span-2 sm:col-span-1">
+            <h2 className="text-white text-lg font-semibold mb-3">
+              MeetAnEscort
+            </h2>
+            <p className="text-sm text-neutral-400 leading-relaxed">
+              Connecting clients with verified escorts in a safe, private, and
+              professional way.
             </p>
-            <div className="flex space-x-6">
+          </div>
+
+          {/* Resources */}
+
+          {/* Platform */}
+          <div>
+            <h3 className="text-white font-semibold mb-3">Platform</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/about" className="hover:text-white transition">
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link href="/help" className="hover:text-white transition">
+                  Help / Support
+                </Link>
+              </li>
+              <li>
+                <Link href="/safety" className="hover:text-white transition">
+                  Safety & Verification
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/become-an-escort"
+                  className="hover:text-white transition"
+                >
+                  Become an Escort
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h3 className="text-white font-semibold mb-3">Legal</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/terms" className="hover:text-white transition">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="hover:text-white transition">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/legal-notices"
+                  className="hover:text-white transition"
+                >
+                  Legal Notices
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/anti-exploitation"
+                  className="hover:text-white transition"
+                >
+                  Anti-Exploitation Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/cookie-policy"
+                  className="hover:text-white transition"
+                >
+                  Cookie Policy
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Social */}
+          <div>
+            <h3 className="text-white font-semibold mb-3">Social</h3>
+            <div className="flex space-x-4 text-neutral-400">
               <Link
-                href="/blog"
-                className="text-pink-200/70 hover:text-pink-300 transition-colors duration-300 text-sm"
+                href="https://twitter.com"
+                target="_blank"
+                className="hover:text-white transition"
               >
-                Blog
+                <FaTwitter size={18} />
               </Link>
               <Link
-                href="/privacy"
-                className="text-pink-200/70 hover:text-pink-300 transition-colors duration-300 text-sm"
+                href="https://instagram.com"
+                target="_blank"
+                className="hover:text-white transition"
               >
-                Privacy
+                <FaInstagram size={18} />
               </Link>
               <Link
-                href="/terms"
-                className="text-pink-200/70 hover:text-pink-300 transition-colors duration-300 text-sm"
+                href="https://tiktok.com"
+                target="_blank"
+                className="hover:text-white transition"
               >
-                Terms
+                <FaTiktok size={18} />
               </Link>
             </div>
           </div>
+        </div>
+
+        <div className="border-t border-neutral-800 mt-10 pt-5 text-center text-xs text-neutral-500">
+          © {new Date().getFullYear()} MeetAnEscort. All rights reserved. <br />
+          This platform does not promote or facilitate illegal activity. Escorts
+          operate independently and are responsible for compliance with local
+          laws.
         </div>
       </footer>
 
